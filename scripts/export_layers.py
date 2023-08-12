@@ -172,13 +172,13 @@ OUTPUTS['Brandveiligheid'] = [
             '${floor}_vluchtwegen',
             '${floor}_vluchtwegen_lijnen',
         }),
-        'scale_layers': {
-            layer: (
-                0.005 / 0.006,  # Convert to 1:200 @ A3
-                (0, 0),  # Just scale from the top left page corner
-            )
-            for layer in ['V0', 'V1', 'V2', 'V3', 'V-1', 'Gebouwdelen']
-        },
+        'transform_layers': (
+            {
+                'layers': ('V0', 'V1', 'V2', 'V3', 'V-1', 'Gebouwdelen'),
+                'scale': 0.005 / 0.006,  # Convert to 1:200 @ A3
+                'scale_center': BORDER_TOP_LEFT,
+            },
+        ),
         'page_size': ("840mm", "594mm"),  # Convert to 1:100 @ A1
         'texts': {
             'title-block-format': "A1",
