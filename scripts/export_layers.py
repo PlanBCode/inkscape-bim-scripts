@@ -2,7 +2,8 @@
 
 # Based on https://github.com/hfichtenberger/inkscape-export-overlays
 #
-# Copyright (c) 2016 "Jesús Espino and Xavier Julian" # Copyright (c) 2018 Hendrik Fichtenberger
+# Copyright (c) 2016 "Jesús Espino and Xavier Julian"
+# Copyright (c) 2018 Hendrik Fichtenberger
 # Copyright (c) 2021 Matthijs Kooijman
 #
 # Permission is hereby granted, free of charge, to any person obtaining
