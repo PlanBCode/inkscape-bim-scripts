@@ -17,3 +17,9 @@ scripts then allow:
 The overarching idea is that the floorplan SVG file creates a single
 source of truth, a sort of visual database, which can then be used to
 generate various other artifacts.
+
+## License
+
+All code in this repository is licensed under the MIT license. See
+comments in the individual files for the full copyright notices and
+license text.
