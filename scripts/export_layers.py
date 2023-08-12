@@ -475,8 +475,9 @@ class LayerSetExport(inkex.Effect):
                 if opacity is not None:
                     layer.attrib['style'] += ';opacity:{}'.format(opacity)
 
-            # TODO: Use masking to fade out everything outside of
-            # https://gitlab.com/inkscape/inkscape/-/issues/694
+            # Use masking to fade out everything outside of the working
+            # area of a circuit box.
+            # TODO: Implement/generalize this once inkscape is fixed: https://gitlab.com/inkscape/inkscape/-/issues/694
             if False and label == 'V0_basistekening':
                 # TODO: Rather than hardcoding 0.5 mask for everything
                 # else, put a nice gradient that fades out the rest of
