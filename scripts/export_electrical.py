@@ -26,6 +26,7 @@
 # SVG) and exports a tables of circuits for each breaker box (writing to
 # CSV files).
 
+import argparse
 import beautifultable
 import copy
 import datetime
@@ -526,6 +527,11 @@ class ProcessElektra(inkex.EffectExtension):
 
         self.arg_parser.add_argument("--write-tables", type=str,
                                      help="Write CSV tables to the given directory")
+
+        # Hide default inkscape options that we do not need
+        for action in self.arg_parser._actions:
+            if action.dest in ['selected_nodes']:
+                action.help = argparse.SUPPRESS
 
     def effect(self):
         doc = self.document

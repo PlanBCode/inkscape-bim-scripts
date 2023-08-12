@@ -28,6 +28,7 @@
 # floorplan, selecting different combinations of layers for different
 # pages of different output files, based on configuration.
 
+import argparse
 import copy
 import datetime
 import os
@@ -353,7 +354,6 @@ class Mask(inkex.elements._groups.GroupBase):
 
 class LayerSetExport(inkex.Effect):
     def __init__(self):
-        """init the effetc library and get options from gui"""
         inkex.Effect.__init__(self)
         self.arg_parser.add_argument("--set", action="store", dest="output_set", choices=OUTPUTS.keys(),
                                      help="Select set of output files (default is autodetect based on input filename)")
@@ -363,6 +363,11 @@ class LayerSetExport(inkex.Effect):
                                      help="Only generate files whose filename contains the given string")
         self.arg_parser.add_argument("--keep-svgs", action="store_true",
                                      help="Keep SVGs generated for each page")
+
+        # Hide default inkscape options that we do not need
+        for action in self.arg_parser._actions:
+            if action.dest in ['selected_nodes']:
+                action.help = argparse.SUPPRESS
 
     def select_output_set(self, path):
         filename = os.path.basename(path)
