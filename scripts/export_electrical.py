@@ -35,7 +35,7 @@ import itertools
 import lxml
 import logging
 import natsort
-import os
+import pathlib
 import re
 import subprocess
 import string
@@ -555,10 +555,10 @@ class ProcessElektra(inkex.EffectExtension):
 
         if self.options.write_tables:
             for dist, table in circuits:
-                dirname = os.path.join(self.options.write_tables, 'circuits')
-                os.makedirs(dirname, exist_ok=True)
-                fname = os.path.join(dirname, f'{dist}.csv')
-                table.to_csv(fname)
+                dirname = pathlib.Path(self.options.write_tables) / 'circuits'
+                dirname.mkdir(parents=True, exist_ok=True)
+                fname = dirname / f'{dist}.csv'
+                table.to_csv(str(fname))
 
     def has_changed(self, ret):
         # String means filename specified, default is sys.stdout

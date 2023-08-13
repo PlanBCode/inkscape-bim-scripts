@@ -32,7 +32,7 @@
 import argparse
 import copy
 import datetime
-import os
+import pathlib
 import subprocess
 import string
 import sys
@@ -371,38 +371,39 @@ class LayerSetExport(inkex.Effect):
                 action.help = argparse.SUPPRESS
 
     def select_output_set(self, path):
-        filename = os.path.basename(path)
         for (name, outputs) in OUTPUTS.items():
-            if name in filename:
+            if name in path.name:
                 return outputs
         return None
 
     def effect(self):
-        output_path = os.path.expanduser(self.options.path)
+        output_path = pathlib.Path(self.options.path).expanduser()
 
         if self.options.output_set:
             outputs = OUTPUTS[self.options.output_set]
         else:
-            outputs = self.select_output_set(self.options.input_file)
+            outputs = self.select_output_set(pathlib.Path(self.options.input_file))
 
         if self.options.keep_svgs:
-            svgdir = os.path.join(output_path, 'svg')
-            os.makedirs(svgdir, exist_ok=True)
+            svgdir = output_path / 'svg'
+            svgdir.mkdir(parents=True, exist_ok=True)
 
         for output in outputs:
             if self.options.only and self.options.only not in output['filename']:
                 continue
             with tempfile.TemporaryDirectory() as tempdir:
+                tempdir = pathlib.Path(tempdir)
+
                 filename = "{} {}".format(datetime.date.today().isoformat(), output['filename'])
-                path = os.path.join(output_path, filename)
-                temp_svg = os.path.join(tempdir, 'page.svg')
+                path = output_path / filename
+                temp_svg = tempdir / 'page.svg'
                 temp_pdfs = []
                 print("Exporting {}".format(path))
                 for (i, page) in enumerate(output['pages']):
                     print("  Page {}".format(i + 1))
 
                     if self.options.keep_svgs:
-                        temp_svg = os.path.join(svgdir, '{}_page{}.svg'.format(filename, i + 1))
+                        temp_svg = svgdir / '{}_page{}.svg'.format(filename, i + 1)
 
                     texts = output.pop('texts', {})
                     texts.update({
@@ -413,12 +414,12 @@ class LayerSetExport(inkex.Effect):
                     })
 
                     self.export_layers(temp_svg, page['layers'], texts, **output)
-                    temp_pdf = os.path.join(tempdir, 'page{}.pdf'.format(i + 1))
+                    temp_pdf = tempdir / 'page{}.pdf'.format(i + 1)
                     temp_pdfs.append(temp_pdf)
 
                     self.export_to_pdf(temp_svg, temp_pdf)
 
-                os.makedirs(os.path.dirname(path), exist_ok=True)
+                path.parent.mkdir(parents=True, exist_ok=True)
                 print(['pdftk', *temp_pdfs, 'cat', 'output', path])
                 subprocess.run(['pdftk', *temp_pdfs, 'cat', 'output', path], check=True)
 
