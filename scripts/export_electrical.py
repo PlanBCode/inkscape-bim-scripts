@@ -28,8 +28,6 @@
 
 import argparse
 import beautifultable
-import copy
-import datetime
 import functools
 import itertools
 import lxml
@@ -37,13 +35,9 @@ import logging
 import natsort
 import pathlib
 import re
-import subprocess
-import string
 import sys
-import tempfile
 import types
 import typing
-import pprint
 import matplotlib.path
 
 from collections import defaultdict
