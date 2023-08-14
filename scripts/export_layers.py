@@ -34,316 +34,11 @@ import copy
 import datetime
 import pathlib
 import subprocess
-import string
 import sys
 import tempfile
 
 sys.path.append('/usr/share/inkscape/extensions')
 import inkex
-
-
-FLOOR_PAGES = [
-    (('V0', 'V00'), 'V0 (begane grond) & kelder'),
-    (('V1',), 'V1 (1e verdieping)'),
-    (('V2',), 'V2 (2e verdieping)'),
-    (('V3',), 'V3 (3e verdieping)'),
-]
-
-FLOORS = ('V00', 'V0', 'V1', 'V2', 'V3')
-
-SURFACES = {
-    '${floor}_basistekening_oppervlaktes',
-}
-
-SHOW_ALWAYS = {
-    'Pagina-aankleding', 'Paginarand', 'Paginarand_schaal', 'Titelblok',
-    'Gebouwdelen', 'Noordaanduiding', '${floor}',
-    '${floor}_basistekening', '${floor}_basistekening_plattegrond',
-    '${floor}_basistekening_ruimtenummers',
-} | SURFACES
-
-DOOR_NUMBERS = {
-    '${floor}_deurnummers', '${floor}_deurnummers_buitendeuren',
-}
-
-DIST_BOXES = ('HKL', 'L01', 'L11', 'L21', 'L02', 'L12', 'L001', 'L002', 'L011', 'NV', 'RK1')
-
-# Positions on the bounding box of the floorplan, for scaling into somE
-# direction while keeping the same margin on the other side.
-FLOORPLAN_TOP_RIGHT = (3818, 365)
-# Positions on the inside of the page borders, to allow scaling while
-# keeping everything inside the border in view
-BORDER_TOP_LEFT = (102, 102)
-BORDER_TOP_RIGHT = (4098, 102)
-
-# Center of the ruler in the page border, to allow scaling it along wit
-# content scaling
-RULER_CENTER = (2100, 2868)
-
-
-def replace(name, values, layers):
-    return {string.Template(layer).safe_substitute({name: value}) for layer in layers for value in values}
-
-
-def floors(layers):
-    return [
-        {
-            'subtitle': desc,
-            'layers': replace('floor', floors, layers),
-        } for floors, desc in FLOOR_PAGES
-    ]
-
-
-OUTPUTS = {}
-
-OUTPUTS['Basis'] = [
-    {
-        'filename': 'Basisplattegrond.pdf',
-        'title': 'Plattegrond',
-        'pages': floors(SHOW_ALWAYS | DOOR_NUMBERS | {
-            '${floor}_basistekening_ruimtegebruik',
-            'Wijzigingen ruimtenummers',
-        }),
-    },
-    {
-        'filename': 'Ruimtegebruik voor opstalverzekering.pdf',
-        'title': 'Ruimtegebruik',
-        'pages': floors(SHOW_ALWAYS | DOOR_NUMBERS | {
-            '${floor}_basistekening_ruimtegebruik_verzekering',
-        }),
-    },
-]
-
-OUTPUTS['Brandveiligheid'] = [
-    {
-        'filename': 'Brandveiligheid.pdf',
-        'title': 'Brandveiligheid',
-        'pages': floors(SHOW_ALWAYS | DOOR_NUMBERS | {
-            'Legenda',
-            'Legenda_deuren',
-            'Legenda_brandscheidingen',
-            'Legenda_BMI',
-            'Legenda_sluitmechanismen',
-            'Legenda_vluchtwegen',
-            '${floor}_brandscheidingen',
-            '${floor}_basistekening_branddeuren_ramen',
-            '${floor}_basistekening_sluitmechanismen',
-            '${floor}_installaties',
-            '${floor}_installaties_behouden',
-            '${floor}_installaties_nieuw',
-            '${floor}_installaties_nieuw_later',
-            '${floor}_vluchtwegen',
-            '${floor}_vluchtwegen_lijnen',
-        }),
-    },
-    {
-        'filename': 'Brandwerende doorvoeren.pdf',
-        'title': 'Brandwerende doorvoeren',
-        'pages': floors(SHOW_ALWAYS | {
-            'Legenda',
-            'Legenda_deuren',
-            'Legenda_brandscheidingen',
-            '${floor}_basistekening_branddeuren_ramen',
-            '${floor}_brandscheidingen',
-            '${floor}_doorvoeren',
-        } | replace('BS', ['BS0', 'BS1', 'BS2', 'BS3', 'BS4', 'BS5'], {
-            '${floor}_doorvoeren_${BS}',
-        })),
-    },
-    {
-        'filename': 'Gebruiksmelding.pdf',
-        'title': 'Melding brandveilig gebruik',
-        'pages': floors(SHOW_ALWAYS - {'Paginarand_schaal'} | {
-            '${floor}_basistekening_bestemming',
-            'Legenda',
-            'Legenda_deuren',
-            'Legenda_brandscheidingen',
-            'Legenda_BMI',
-            'Legenda_sluitmechanismen',
-            'Legenda_vluchtwegen',
-            '${floor}_brandscheidingen',
-            '${floor}_basistekening_branddeuren_ramen',
-            '${floor}_basistekening_sluitmechanismen',
-            '${floor}_basistekening_personen',
-            '${floor}_basistekening_inrichting',
-            '${floor}_installaties',
-            '${floor}_installaties_behouden',
-            '${floor}_installaties_nieuw',
-            '${floor}_installaties_nieuw_later',
-            '${floor}_vluchtwegen',
-            '${floor}_vluchtwegen_lijnen',
-        }),
-        'transform_layers': (
-            {
-                'layers': ('V0', 'V1', 'V2', 'V3', 'V-1', 'Gebouwdelen'),
-                'scale': 0.005 / 0.006,  # Convert to 1:200 @ A3
-                'scale_center': BORDER_TOP_LEFT,
-            },
-        ),
-        'page_size': ("840mm", "594mm"),  # Convert to 1:100 @ A1
-        'texts': {
-            'title-block-format': "A1",
-            'title-block-scale': "1:100",
-            'title-block-altformat': "",
-            'title-block-altscale': "",
-        }
-    },
-    {
-        'filename': 'Brandmeldinstallatie.pdf',
-        'title': 'Brandmeldinstallatie',
-        'pages': floors(SHOW_ALWAYS | DOOR_NUMBERS | {
-            'Legenda',
-            'Legenda_deuren',
-            'Legenda_brandscheidingen', 'Legenda_BMI', 'Legenda_leidingen',
-            '${floor}_basistekening_branddeuren_ramen',
-            '${floor}_brandscheidingen', '${floor}_aantekeningen',
-            '${floor}_installaties', '${floor}_installaties_behouden',
-            '${floor}_installaties_nieuw',
-            '${floor}_installaties_nieuw_later',
-            '${floor}_installaties_adressen', '${floor}_installaties_nv_nummers',
-        }),
-    },
-    {
-        'filename': 'Brandmeldinstallatie met leidingen.pdf',
-        'title': 'Brandmeldinstallatie',
-        'pages': floors(SHOW_ALWAYS | DOOR_NUMBERS | {
-            'Legenda',
-            'Legenda_deuren',
-            'Legenda_brandscheidingen', 'Legenda_BMI', 'Legenda_leidingen',
-            '${floor}_basistekening_branddeuren_ramen',
-            '${floor}_brandscheidingen', '${floor}_aantekeningen',
-            '${floor}_installaties', '${floor}_installaties_behouden',
-            '${floor}_installaties_nieuw',
-            '${floor}_installaties_nieuw_later',
-            '${floor}_installaties_adressen', '${floor}_installaties_nv_nummers',
-            '${floor}_leidingen', '${floor}_leidingen_behouden',
-            '${floor}_leidingen_nieuw', '${floor}_leidingen_nieuw_later',
-        }),
-    },
-]
-
-OUTPUTS['Elektra'] = [
-    {
-        'filename': 'Elektra.pdf',
-        'title': 'Elektra',
-        'pages': floors(SHOW_ALWAYS - SURFACES | DOOR_NUMBERS | {
-            'Legenda',
-            'Legenda_elektra',
-            '${floor}_basistekening_closeup',
-            '${floor}_basistekening_closeup_ruimtenummers',
-            '${floor}_Elektra',
-        } | replace('dist', DIST_BOXES, {
-            '${floor}_Elektra_${dist}',
-            '${floor}_Elektra_${dist}_WCD_etc',
-            '${floor}_Elektra_${dist}_Verlichting',
-            '${floor}_Elektra_${dist}_NV',
-            '${floor}_Elektra_${dist}_Lasdozen',
-            '${floor}_Elektra_${dist}_Installaties',
-        })),
-        'transform_layers': (
-            {
-                'layers': replace('floor', FLOORS, {'${floor}_basistekening'}),
-                'opacity': 0.5,
-            },
-        ),
-    },
-    {
-        # TODO: Generalize
-        'filename': 'Groepenkast L02.pdf',
-        'title': 'Groepenkast L02',
-        'pages': [
-            {
-                'subtitle': 'V0 (begane grond)',
-                'layers':
-                    # TODO: This hides other kasten, but if different
-                    # kasten are mixed within the same room, they should
-                    # definitely not be hidden (maybe shown in grey, or
-                    # even highlighted).
-                    replace('floor', ('V0',), replace('kast', ('L02',), SHOW_ALWAYS - SURFACES | {
-                        '${floor}_Elektra',
-                        '${floor}_Elektra_${kast}',
-                        '${floor}_Elektra_${kast}_WCD_etc',
-                        '${floor}_Elektra_${kast}_Verlichting',
-                        '${floor}_Elektra_${kast}_NV',
-                    })),
-            },
-        ],
-        'transform_layers': (
-            {
-                'layers': ('V0', 'V1', 'V2', 'V3', 'V-1', 'Gebouwdelen'),
-                'scale': 0.010 / 0.006,  # Convert to 1:100 @ A3
-                'scale_center': BORDER_TOP_RIGHT,
-                # Clip scaled layers to the page border, to prevent
-                # "sticking out" when scaling up. This wraps in another
-                # layer, so the clip is applied *after* scaling, not
-                # before.
-                'clip': 'clip-page-border-and-title',
-            },
-            {
-                'layers': ('Paginarand_schaal',),
-                'scale': 0.010 / 0.006,  # Convert to 1:100 @ A3
-                'scale_center': RULER_CENTER,
-            },
-            {
-                'layers': replace('floor', FLOORS, {'${floor}_basistekening'}),
-                'opacity': 0.5,
-            }
-        ),
-        'texts': {
-            'title-block-scale': "1:100",
-            'title-block-altscale': "1:200",
-        },
-    },
-    {
-        # TODO: Generalize
-        'filename': 'Groepenkast L01.pdf',
-        'title': 'Groepenkast L01',
-        'pages': [
-            {
-                'subtitle': 'V0 (begane grond)',
-                'layers':
-                    # TODO: This hides other kasten, but if different
-                    # kasten are mixed within the same room, they should
-                    # definitely not be hidden (maybe shown in grey, or
-                    # even highlighted).
-                    replace('floor', ('V0',), replace('kast', ('L01',), SHOW_ALWAYS - SURFACES | {
-                        '${floor}_Elektra',
-                        '${floor}_Elektra_${kast}',
-                        '${floor}_Elektra_${kast}_WCD_etc',
-                        '${floor}_Elektra_${kast}_Verlichting',
-                        '${floor}_Elektra_${kast}_NV',
-                    })),
-            },
-        ],
-        'transform_layers': (
-            {
-                'layers': ('V0', 'V1', 'V2', 'V3', 'V-1', 'Gebouwdelen'),
-                'scale': 0.008 / 0.006,  # Convert to 1:125 @ A3
-                'scale_center': BORDER_TOP_LEFT,
-                # Clip scaled layers to the page border, to prevent
-                # "sticking out" when scaling up. This wraps in another
-                # layer, so the clip is applied *after* scaling, not
-                # before.
-                'clip': 'clip-page-border-and-title',
-            },
-            {
-                'layers': ('Paginarand_schaal',),
-                'scale': 0.008 / 0.006,  # Convert to 1:125 @ A3
-                'scale_center': RULER_CENTER,
-            },
-            {
-                'layers': replace('floor', FLOORS, {'${floor}_basistekening'}),
-                'opacity': 0.5,
-            }
-        ),
-        'texts': {
-            'title-block-scale': "1:100",
-            'title-block-altscale': "1:200",
-        },
-    },
-]
-
-# ./export_layers.py HBW_BMI_plan.svg
 
 
 # Add a Mask object, which seems to be missing from inkex. It's just a simple
@@ -356,8 +51,9 @@ class Mask(inkex.elements._groups.GroupBase):
 class LayerSetExport(inkex.Effect):
     def __init__(self):
         inkex.Effect.__init__(self)
-        self.arg_parser.add_argument("--set", action="store", dest="output_set", choices=OUTPUTS.keys(),
-                                     help="Select set of output files (default is autodetect based on input filename)")
+        self.arg_parser.add_argument("--config", action="store", dest="config",
+                                     help="Config file that defines what export files to make."
+                                     + "Defaults to .cfg.py file matching input SVG file.")
         self.arg_parser.add_argument("--path", action="store", dest="path", default="export", help="")
         self.arg_parser.add_argument("--dpi", action="store", type=int, dest="dpi", default=90)
         self.arg_parser.add_argument("--only", action="store", type=str, dest="only", default="",
@@ -370,19 +66,28 @@ class LayerSetExport(inkex.Effect):
             if action.dest in ['selected_nodes']:
                 action.help = argparse.SUPPRESS
 
-    def select_output_set(self, path):
-        for (name, outputs) in OUTPUTS.items():
-            if name in path.name:
-                return outputs
-        return None
+    def load_config(self, path):
+        prompt = f"About to execute {path} to read config, continue only if this file is trusted.\nContinue Y/n?"
+        if input(prompt) not in ['', 'y', 'Y']:
+            sys.exit(0)
+        config = {}
+        exec(pathlib.Path(path).read_text(), config)
+        return config
 
     def effect(self):
         output_path = pathlib.Path(self.options.path).expanduser()
 
-        if self.options.output_set:
-            outputs = OUTPUTS[self.options.output_set]
+        if self.options.config:
+            config_path = self.options.config
         else:
-            outputs = self.select_output_set(pathlib.Path(self.options.input_file))
+            config_path = pathlib.Path(self.options.input_file).with_suffix('.cfg.py')
+
+        config = self.load_config(config_path)
+        try:
+            outputs = config['EXPORT_LAYERS_OUTPUTS']
+        except KeyError:
+            print(f"Config file ({config_path}) does not define EXPORT_LAYERS_OUTPUTS variable")
+            return
 
         if self.options.keep_svgs:
             svgdir = output_path / 'svg'
@@ -438,7 +143,7 @@ class LayerSetExport(inkex.Effect):
         transform_dict = {
             layer: {
                 'scale': spec.get('scale', None),
-                'scale_center': spec.get('scale_center', BORDER_TOP_LEFT),
+                'scale_center': spec.get('scale_center', None),
                 'clip_obj': self.make_clip_path(svg, spec['clip']) if 'clip' in spec else None,
                 'opacity': spec.get('opacity', None),
             } for spec in transform_layers for layer in spec['layers']
