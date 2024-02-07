@@ -52,9 +52,10 @@ class LayerSetExport(inkex.Effect):
     def __init__(self):
         inkex.Effect.__init__(self)
         self.arg_parser.add_argument("--config", action="store", dest="config",
-                                     help="Config file that defines what export files to make."
-                                     + "Defaults to .cfg.py file matching input SVG file.")
-        self.arg_parser.add_argument("--path", action="store", dest="path", default="export", help="")
+                                     help="Config file that defines what export files to make, "
+                                     "defaults to .cfg.py file matching input SVG file")
+        self.arg_parser.add_argument("--path", action="store", dest="path", default="export",
+                                     help="Directory to store output files in, defaults to ./export")
         self.arg_parser.add_argument("--only", action="store", type=str, dest="only", default="",
                                      help="Only generate files whose filename contains the given string")
         self.arg_parser.add_argument("--keep-svgs", action="store_true",
@@ -62,7 +63,7 @@ class LayerSetExport(inkex.Effect):
 
         # Hide default inkscape options that we do not need
         for action in self.arg_parser._actions:
-            if action.dest in ['selected_nodes']:
+            if action.dest in ['selected_nodes', 'output']:
                 action.help = argparse.SUPPRESS
 
     def load_config(self, path):
