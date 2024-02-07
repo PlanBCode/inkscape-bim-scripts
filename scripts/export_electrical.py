@@ -524,8 +524,10 @@ class ProcessElektra(inkex.EffectExtension):
 
         # Hide default inkscape options that we do not need
         for action in self.arg_parser._actions:
-            if action.dest in ['selected_nodes']:
+            if action.dest in ['selected_nodes', 'id']:
                 action.help = argparse.SUPPRESS
+            if action.dest == 'output':
+                action.help = "Output filename for saving flooplan with warnings marked (if any)"
 
     def effect(self):
         doc = self.document
