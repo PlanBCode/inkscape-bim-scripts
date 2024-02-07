@@ -18,6 +18,18 @@ The overarching idea is that the floorplan SVG file creates a single
 source of truth, a sort of visual database, which can then be used to
 generate various other artifacts.
 
+## Dependencies and running
+
+To install dependencies into an automatically created virtualenv, you
+can use the poetry tool. From within the repository root, run:
+
+    poetry install
+
+Then to run scripts use `poetry shell` to load the virtualenv and then
+run the scripts, or combine both using e.g.:
+
+    poetry run ./scripts/export_layers.py
+
 ## License
 
 All code in this repository is licensed under the MIT license. See

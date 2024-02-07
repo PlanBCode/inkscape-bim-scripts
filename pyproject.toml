@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "inkscape-bim-scripts"
+version = "0.1.0"
+description = "Tools for using inkscape SVG file as a BIM (Building Information Management) system"
+authors = ["Matthijs Kooijman <matthijs@stdin.nl>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+natsort = "^8.4.0"
+beautifultable = "^1.1.0"
+matplotlib = "^3.8.2"
+lxml = "^5.1.0"
+cssselect = "^1.2.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
