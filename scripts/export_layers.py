@@ -55,7 +55,6 @@ class LayerSetExport(inkex.Effect):
                                      help="Config file that defines what export files to make."
                                      + "Defaults to .cfg.py file matching input SVG file.")
         self.arg_parser.add_argument("--path", action="store", dest="path", default="export", help="")
-        self.arg_parser.add_argument("--dpi", action="store", type=int, dest="dpi", default=90)
         self.arg_parser.add_argument("--only", action="store", type=str, dest="only", default="",
                                      help="Only generate files whose filename contains the given string")
         self.arg_parser.add_argument("--keep-svgs", action="store_true",
@@ -241,7 +240,7 @@ class LayerSetExport(inkex.Effect):
     def export_to_pdf(self, svg_path, output_path):
         # TODO: Replace with inkex.command.inkscape or inkscape_command?
         area_param = '-C'
-        command = "inkscape %s -d %s -o \"%s\" \"%s\"" % (area_param, self.options.dpi, output_path, svg_path)
+        command = "inkscape %s -o \"%s\" \"%s\"" % (area_param, output_path, svg_path)
 
         PIPE = subprocess.PIPE
         with subprocess.Popen(command.encode("utf-8"), shell=True, stdout=PIPE, stderr=PIPE) as p:
